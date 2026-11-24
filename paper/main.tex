@@ -1,0 +1,131 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx,booktabs,amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage[preprint]{icml2026}
+\urlstyle{same}
+\hypersetup{pdfsubject={Research preprint on EEG window classification}}
+\icmltitlerunning{Regional Evidence and Bilateral Interactions for EEG Classification}
+\makeatletter\let\inputrows\@@input\makeatother
+\newcommand{\tm}{T-MoE}
+\newcommand{\logit}{\operatorname{logit}}
+\begin{document}
+\twocolumn[
+\icmltitle{Regional Evidence and Bilateral Interactions\\
+for EEG Window Classification}
+\begin{icmlauthorlist}
+\icmlauthor{Anonymous authors}{draft}
+\end{icmlauthorlist}
+\icmlaffiliation{draft}{Affiliation withheld in this preprint}
+\icmlcorrespondingauthor{Project repository}{github.com/xiaobri/T-MOE/issues}
+\icmlkeywords{electroencephalography, mixture of experts, partial information decomposition, paired ranking}
+\vskip 0.3in
+]
+\printAffiliationsAndNotice{}
+\begin{abstract}
+Reflecting a scalp EEG swaps the two hemispheres without changing the recorded window. We ask which evidence a mixture of experts should average across this transformation and which it should retain in the recorded orientation. Our classifier, \tm{}, pools regional and matched positive--negative scores across orientations, preserves electrode order for spatial and spectral features, and uses a partial information decomposition (PID) to score interactions between native and reflected expert decisions. On 166,079 validation windows with 2.09\% positives, mean positive-class F1 across two seeds rises from 69.7870\% for the six-expert baseline and 72.0318\% for its refreshed-pair extension to 73.0240\%. Giving the baseline the same four views and head history yields 69.9280\%. The largest mean reductions occur when removing regional fusion (0.7653 F1 points) or matched ranking (0.5174). Removing bilateral PID costs 0.0921 points. The validation split guided development. Selecting checkpoints and thresholds on other inferred subjects gives 72.6689\%, which limits how precisely the primary result can be interpreted.
+\end{abstract}
+
+\section{Introduction}
+A four-second EEG window can contain a brief, lateralized transient and a slow deflection shared across the scalp. Left--right reflection preserves the timing of both, while exchanging the side on which the transient appears. Removing a fitted slow trend changes the prominence of both. A classifier that averages every feature across these transformations makes the same invariance assumption for a regional expert's confidence and for the spatial distribution of scalp power. We test a weaker assumption: pool estimates of regional evidence, and let the spatial and spectral readouts retain their electrode ordering.
+
+We study this question in a six-expert detector with five frozen regional sources and a trainable global expert. A previous study improved this detector by pooling time segments and comparing positives with previously sampled negatives from similar acquisitions \citep{predecessor}. That predecessor already achieved 72.0318\% mean F1. It provides a more informative reference for the new design than a comparison to the original detector alone. We adapt the pair-based readout to EEG-derived backgrounds and measure whether the joint responses of an expert to a window and its reflection add information beyond the marginal responses.
+
+Our evaluation addresses two questions. First, how much of the gain survives when the baseline receives the same input views and access to earlier classifier heads from its own training run? Second, when the final classifier scores a window, which terms change the positive decision? For the latter we retain the trained weights and recompute operating points after removing each contribution. We also report how these effects change when the threshold and epoch must transfer to a held-out group. Both questions concern binary window labels in the source corpus. Clinical event detection over a continuous recording would require event annotations and a different evaluation unit.
+
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.96\textwidth]{figures/view-routing.pdf}
+\caption{How one EEG window reaches the classifier. Each column is one transformation of that window. The marks show which scores enter each part of the final decision. Regional and matched scores pool mirror pairs. The two scalp readouts retain electrode orientation. The last two rows compare native and mirrored scores and operate on the original trend reference.}\label{fig:architecture}
+\end{figure*}
+
+\section{Method}
+\subsection{Shared experts and window-level evidence}
+Figure~\ref{fig:architecture} shows which branches consume each view. The input $x\in\mathbb{R}^{19\times2000}$ comprises four seconds at 500 Hz. Five frozen EfficientNetV2-S-family sources \citep{tan2021,predecessor} supply frontal, left-temporal, right-temporal, centro-parietal and occipital expert representations. Each receives all 19 input channels. A two-layer Transformer fuses the five 128-dimensional representations into a sixth expert. A dense router with softmax temperature 2 mixes the six pairs of logits. We write $c(x)$ for the positive-minus-negative margin of the baseline. A regional source name denotes how its weights were obtained and does not establish where a waveform originated in the brain.
+
+The extended model adds four successive \emph{margin increments}. The regional increment $r$ collects the learned refinements to the shared core, including peak-shape features and learned pooling over eight time blocks per source. The matching increment $m$ adjusts the resulting margin using regional feature differences between positives and previously observed negatives. The training procedure fits 32 background groups on waveform descriptors. Soft membership weights guide the selection of up to 16 earlier controls from a 2,048-entry history. This compares the positive to a range of risks within similar backgrounds. Only fitted coefficients are needed for the pair-based readout at inference.
+
+The spatial increment $s$ measures how band-limited activity at an electrode differs from its spatial context. It summarizes both standardized traces and conditional innovations relative to other electrodes. The final increment $v$ comes from a time-resolved spectrum: it maps 12 frequency bands and 32 time bins to a $5\times5$ scalp grid and fits a small convolutional encoder. \citet{wang2026} motivate this representation through EEG spectrum videos. Here the encoder trains from scratch using the same window labels as the detector. The stages act in sequence, so an increment denotes the change from its immediate input score. This distinction matters when a later stage uses an earlier score as a feature.
+
+\subsection{A different pooling rule for each type of evidence}
+Let $M$ exchange eight homologous electrode pairs and fix three midline leads. Let $D$ remove each channel's least-squares quadratic trend over the window. We evaluate $x$, $Mx$, $Dx$ and $MDx$. In the following, $u\in\{0,1\}$ indexes the native or detrended input, and $b\in\{0,1\}$ the original or reflected orientation. For a given trend choice define
+\begin{align}
+a_u &= \tfrac12\sum_{b=0}^{1}(r_{ub}+m_{ub}),\\
+g_u &= a_u+s_{u0}+v_{u0}.
+\end{align}
+Thus a regional or pair increment contributes in both orientations, while a spatial or spectrum increment retains the recorded orientation for each trend choice.
+
+We weight the two trend choices using a measure of how consistently the slow deflection appears across channels. We compute the empirical percentile $q(x)$ of that measure against the first 4,096 scheduled training windows, and set $w(x)=0.25+0.5q(x)$. A higher percentile gives more weight to the detrended view. The pooled contribution is
+\begin{equation}
+G(x)=(1-w(x))g_0+w(x)g_1. \label{eq:stage}
+\end{equation}
+The restricted weight range retains evidence from both references even at the extremes of the training distribution.
+
+\subsection{Bilateral interaction and the final decision}
+For each of five regional scores and the core score, let $(A,B)$ be its values on the native window and its reflection. We quantize each coordinate into five levels with shared training-derived boundaries. Class-conditional joint counts are symmetrized in $(A,B)$. This defines a two-source prediction problem with the binary label as target. The sources are responses to transformations of one observation. Their dependence does not imply two independently measured physiological processes.
+
+Following the fixed-marginal coupling formulation of \citet{bert2014}, we estimate how the observed joint class evidence differs from that of a coupling preserving the separate source--label marginals. The model converts this difference into six bounded local log-odds features, one per score pair. A regularized positive--negative fit on prior training comparisons maps the features to an additive correction $J(x)$. Appendix~\ref{app:implementation} gives the estimator and its smoothing. The final correction is a predictive feature in log-odds units. The change in F1 after removing it is an empirical effect, not an information quantity.
+
+Let $\sigma$ denote the sigmoid and $c_{ub}$ the current core margins. We average the four \emph{probabilities} and convert back to a margin. We also score the current native and reflected features with earlier heads from the same seed, weighting earlier epochs by recency and agreement between orientations. Let $H(x)$ be their weighted native margin, including the current head, minus the current native margin. The deployed score is
+\begin{align}
+C(x)&=\logit\!\left(\tfrac14\sum_{u,b}\sigma(c_{ub})\right),\\
+p(x)&=\sigma\big(C(x)+H(x)+G(x)+J(x)\big). \label{eq:full}
+\end{align}
+Every term can be computed for one EEG window. The historical heads reuse current-window encoder features. Inference uses each seed separately and requires four passes through each frozen source.
+
+\section{Evaluation}
+\paragraph{Data and selection.}
+The original Xiehe manifest assigns 731,610 windows to training (190,413 positive) and 166,079 to validation (3,471 positive). The endpoint is the manifest's positive binary window label. The supplied metadata do not establish an adjudicated diagnosis for that label. We retain the original split and channel order. For each seed in $\{3,42\}$ we evaluate every checkpoint from 20 epochs at the 99 thresholds from 0.01 to 0.99. We select on positive-class F1, $2TP/(2TP+FP+FN)$, and average the two selected seed scores. All primary results use predictions replayed from raw EEG. Appendix~\ref{app:protocol} documents sampling, tie handling and replay checks.
+
+\paragraph{Controls.}
+All four primary methods share the five source checkpoints, input length, sampled rows and batch order per seed, learning rate, batch size and number of AdamW updates. The second baseline also shares the four views and same-seed history rule in Eq.~\eqref{eq:full}. The refreshed-pair predecessor uses its published native-input protocol. The full method has 2,839,680 trainable parameters versus 365,576 for the original baseline, and adds auxiliary supervision from previously sampled windows. Matching training draws and updates therefore leaves differences in capacity and computation. Appendix~\ref{app:training} reports separately trained controls at the larger parameter count.
+
+\begin{table}[t]
+\caption{Positive-class validation F1 (\%). Each seed uses its own selected epoch and threshold.}\label{tab:primary}
+\centering\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule Model & Seed 3 & Seed 42 & Mean\\ \midrule
+\inputrows tables/primary.tex
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Results}
+As Table~\ref{tab:primary} shows, \tm{} improves mean F1 by 3.2369 points over the native baseline, 3.0960 over its view- and history-matched counterpart, and 0.9922 over the refreshed-pair predecessor. At its selected threshold, seed 3 finds 2,515 positives with 920 false positives and 956 misses. Seed 42 finds 2,550 with 945 false positives and 921 misses. The paired 95\% recording-folder bootstrap intervals for the three gains are $[1.50,5.65]$, $[1.27,5.66]$ and $[0.18,1.84]$ points, respectively. These intervals condition on the selected models and operating points.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/paired-ablation.pdf}
+\caption{Which score terms contribute to the final decision? Each marker compares the full and ablated readouts after each has selected its own epoch and threshold. Positive values favor the full model. Lines are paired 95\% recording-folder bootstrap intervals for the two-seed mean at the selected operating points.}\label{fig:effects}
+\end{figure*}
+
+\paragraph{Regional and pair evidence account for the largest mean gains.}
+On the final training trajectory, the shared core with four views and head history scores 69.9119\%. Adding the pooled regional increment gives 72.1933\%, and adding matched ranking brings the mean to 72.6990\%. In the reverse experiment, deleting regional fusion from the complete readout costs 0.7653 points. Most of this difference comes from seed 42. Deleting matched ranking costs 0.5174 points and lowers both seeds (Figure~\ref{fig:effects}). These estimates answer different questions because later stages depend on earlier scores and can move the best operating point. Neither series partitions the entire gain into independent effects.
+
+\paragraph{Bilateral PID has a smaller effect.}
+Deleting $J(x)$ gives 72.9319\% with operating points reselected, a decrease of 0.0921 points. Both seeds decrease, but the conditional folder interval for this gain spans zero ($[-0.016,0.231]$). At the original operating points, removing the same term gives 72.7877\%. Weighting the two trend choices equally instead of by coherence gives 73.0046\%. These results put the incremental value of each design choice in scale: the equal-weight model already exceeds 73\% on this validation split.
+
+\paragraph{Transfer across inferred subjects.}
+We held out each of 71 subject names inferred from validation directories, selected the epoch and threshold on the remaining names, and pooled the held-out confusion counts. The full model gives 72.6689\%, compared with 71.6114\% for the predecessor. Deleting the spectrum-video score gives 72.7716\% under this rule, reversing the ordering seen under full-validation selection. Three inferred names occur in both training and validation. Removing their windows at the original operating points yields 71.0716\% for \tm{} and 70.2115\% for the predecessor. The names are proxies for identity. Neither analysis supplies an independent clinical test.
+
+\section{Related Work}
+Interaction-aware mixtures model how sources jointly influence a prediction \citep{xin2025}. Sample-level multimodal interaction estimators \citep{yang2025} and decision-level PID analyses \citep{fang2026} motivate measuring what changes when two sources are considered jointly. Our exchange-symmetric variables are paired EEG views, and our readout uses a finite-alphabet coupling contrast. The sample-wise estimator of \citet{yang2025} and the language-conditioned estimator of \citet{fang2026} address different estimation problems.
+
+Cross-batch memory supplies comparisons beyond a single mini-batch \citep{wang2020}. Our predecessor adapts this idea to previously observed negative EEG windows \citep{predecessor}. In \tm{}, waveform-derived background memberships guide those comparisons. The auxiliary objective also draws on cost-sensitive metric optimization \citep{mao2025} and class-conditional distribution balancing \citep{zhao2026}. We use these ideas within a detector trained on a fixed stream of windows. The threshold policy and the score terms can therefore be evaluated independently of changes to the sampling schedule.
+
+\section{Discussion}
+The clearest evidence is for retaining regional information over time and comparing similar-background windows. Explicit bilateral interaction contributes a smaller, repeatable change in direction across two seeds. Its magnitude is sensitive to the operating point, and recording-level uncertainty includes zero. Retaining electrode orientation or suppressing drift may suit this corpus differently from another montage or acquisition protocol.
+
+Method development repeatedly used the same validation split. The experiment archive contains 559 completed two-seed run directories spanning 558 method names, including earlier development work. Such repeated selection can favor promising fluctuations \citep{cawley2010}. Applying the chosen fusion rule to corresponding checkpoints of an earlier training repeat gives 72.9715\%. Together with the group-transfer and overlap analyses, this limits the precision of the 73.0240\% estimate. An independently collected, patient-identified cohort with a prospectively locked operating point would test transfer beyond this study.
+
+\section*{Impact Statement}
+A more sensitive EEG window classifier could help prioritize segments for expert review, but false positives also increase review burden. Here the unit is a four-second window, and the labels, patient identities and operating points have not been validated for clinical deployment. The aggregate results permit scrutiny of error counts and model selection without distributing individual recordings.
+
+\bibliography{references}
+\bibliographystyle{icml2026}
+\clearpage
+\appendix
+\onecolumn
+\input{appendix}
+\end{document}

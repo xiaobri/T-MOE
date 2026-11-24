@@ -1,0 +1,125 @@
+\section{Experimental protocol and implementation}\label{app:protocol}
+\paragraph{Data and input.}
+The training split contains 541,197 negative and 190,413 positive windows. The corresponding validation counts are 162,608 and 3,471. The loader selects channels 1--19 in their stored order, divides the stored amplitude by $10^{-3}$, and takes the first 2,000 samples per channel with right zero-padding for shorter inputs. No ECG or EMG input is constructed. The split audit found no exact file path shared across training and validation. It did find three shared parent-directory names. Their interpretation is discussed in Appendix~\ref{app:robust}. We use the manifest label as supplied and make no assumptions about unavailable annotation or adjudication details.
+
+\paragraph{Optimization and selection.}
+For each seed, every epoch uses 19,355 negative and 645 positive draws. The sampler draws without replacement within the epoch. The batch size is 128, giving 156 full batches and one batch of 32. Over 20 epochs this gives 400,000 sampled positions and 3,140 AdamW updates. Learning rate is $5\times10^{-4}$, weight decay 0.01, focal-loss $\alpha=0.85$, and $\gamma=2$. Training uses FP32. Fusion width is 128 with two layers, four attention heads and dropout 0.3. Router width is 128 with two layers and dropout 0.5. All methods use the historical threshold grid. For a tied maximum within an epoch we select the lowest threshold. Across tied epochs we select the latest epoch. A positive decision requires $p>t$. Neither class predictions nor probabilities are averaged across seeds.
+
+The shared core receives its original loss gradients. The extension fits its regional and spatial heads, auxiliary ranking and classification terms on the scheduled windows. The spectrum head also receives an auxiliary loss with false-positive and false-negative costs derived from earlier training confusion estimates, evaluated across background groups. The training code caps extreme background weighting and fits the auxiliary comparison statistics using the labels of earlier sampled windows. The number of optimizer updates therefore understates the additional supervision and arithmetic. The two-seed baseline with the same four views and histories controls specifically for inference access. It retains the smaller trainable parameter count.
+
+\paragraph{Raw-input verification.}
+We scored all validation windows three ways at the selected operating points: the exported single-seed detector, an implementation that expands its branch outputs, and a replay that recomputes each view and head from raw EEG. Across these implementations the 166,079 threshold decisions agree for each seed. Small continuous-score differences occur in some windows near PID bin boundaries. Removing the measured PID offset from raw predictions at the released thresholds also reproduces the ablation's confusion counts. The shared core's cached predictions agreed with the cached baseline trajectory at all 20 epochs for both seeds. Raw-trained and cached-trained baseline trajectories have slightly different selected scores, so each table identifies the reference it uses.
+
+\subsection{Drift, interaction and history estimators}\label{app:implementation}
+For the drift statistic, average each channel over 50 consecutive blocks of 40 samples and subtract its temporal mean. Project each resulting vector onto the orthonormal linear and quadratic components and divide by its temporal Euclidean norm (floored at $10^{-6}$). Let $d_i\in\mathbb R^2$ denote the two coefficients for channel $i$. The coherence score is
+\begin{equation}
+k(x)=\frac{\|\frac{1}{19}\sum_i d_i\|_2^2}{0.02+\frac{1}{19}\sum_i\|d_i\|_2^2}.
+\end{equation}
+The percentile in Eq.~\eqref{eq:stage} is the fraction of the 4,096 training reference values at or below $k(x)$. This calculation uses no validation reference windows or labels.
+
+For the bilateral estimator, each of the six coordinates uses the pooled orientation-specific training quintiles to define a $5\times5$ table. Counts for $(a,b)$ and $(b,a)$ receive equal weight. Each class table is smoothed by a product-of-marginals prior with mass 24 and a 0.05 pseudocount per cell. The model updates counts after scoring training batches. For each coordinate, let $P_y$ be the resulting class-conditional table. Under an equal class prior, the coupling step seeks the least informative joint $Q$ with the same $(Y,A)$ and $(Y,B)$ marginals:
+\begin{equation}
+\min_{Q:\,Q(Y,A)=P(Y,A),\;Q(Y,B)=P(Y,B)} I_Q(Y;A,B).
+\end{equation}
+The implementation uses up to 32 alternating updates and a feasibility repair when needed. Exchange symmetry makes the two single-source marginals identical. In that idealized problem the coupling $A=B$ attains the single-source lower bound. For the \emph{local predictive score} we use the numerical coupling, with a separate smoothing step to avoid unstable log odds in low-mass cells. Write $R_y=0.9Q_y+0.1P_y(A)P_y(B)$. The feature for the observed bin is
+\begin{equation}
+j(a,b)=\operatorname{clip}_{[-2,2]}\!\left(\log\frac{P_1(a,b)}{P_0(a,b)}
+                         -\log\frac{R_1(a,b)}{R_0(a,b)}\right).
+\end{equation}
+A regularized logistic update on matched feature differences fits coefficients for the six-dimensional vector $j$. The correction is $J(x)=2.5\tanh((j-\bar j)^\top\beta/2)$. Its center and coefficients are estimated on training draws. No other validation window or group identifier enters this prediction.
+
+For the history term, let $c_{t,00}$ and $c_{t,01}$ be the current window's native and reflected margins under the head saved at epoch $t$. At selected epoch $e$ define
+\begin{equation}
+b_t=\frac{2^{(t-e)/4}}{1+(c_{t,00}-c_{t,01})^2},\qquad
+H=\frac{\sum_{t=1}^{e} b_t c_{t,00}}{\sum_{t=1}^{e}b_t}-c_{e,00}.
+\end{equation}
+The four-epoch half-life favors recent heads. The denominator in $b_t$ additionally reduces the weight of heads whose score for this window changes strongly under reflection. Snapshots never extend beyond the checkpoint being evaluated.
+
+\section{Readout ablations on the final training trajectory}\label{app:ablate}
+We saved the core margin and the four stage increments for every validation window, view, epoch and seed. To remove an increment, we zero only its direct contribution to Eq.~\eqref{eq:full}. Later stages still see the representations and intermediate margins on which they were trained. These experiments estimate dependence of the deployed decision on each score term. A model trained from initialization without the branch could adapt its other weights and give a different answer.
+
+\begin{table}[ht]
+\caption{Single-term deletion on the original validation set. Except in the final column, each arm reselects its epoch and threshold separately for each seed. Loss is the full-model mean minus the arm mean in percentage points. Locked mean holds the full model's epoch \emph{and} threshold fixed for each seed. All F1 columns are in percent.}\label{tab:drop}
+\centering\small
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule Term removed & Seed 3 & Seed 42 & Mean & Loss (pp) & Locked mean \\ \midrule
+\inputrows tables/drop.tex
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\caption{Operating points for Table~\ref{tab:drop} after reselection. Each column group refers to all 166,079 windows. The threshold $t$ is applied with a strict inequality.}\label{tab:ops}
+\centering\small
+\begin{tabular}{@{}lrrrrrrrrrr@{}}
+\toprule & \multicolumn{5}{c}{Seed 3} & \multicolumn{5}{c}{Seed 42} \\
+\cmidrule(lr){2-6}\cmidrule(l){7-11}
+Term removed & Epoch & $t$ & TP & FP & FN & Epoch & $t$ & TP & FP & FN \\ \midrule
+\inputrows tables/operating.tex
+\bottomrule
+\end{tabular}
+\end{table}
+
+The regional increment changes the scale of the final margin. Removing it while retaining thresholds 0.91 and 0.87 reduces mean F1 to 28.5753\%. Once the ablated scores select their own thresholds (0.58 and 0.57), mean F1 recovers to 72.2586\%. A locked-threshold ablation therefore confounds a change in score scale with a change in separability. Reselection also changes the ranking epoch, as the pair-deletion row in Table~\ref{tab:ops} illustrates. By comparison, deleting PID leaves the selected epochs unchanged. Under reselection the PID term adds one true positive and removes eight false positives for seed 3, while adding 16 true positives and 20 false positives for seed 42.
+
+\begin{table}[ht]
+\caption{Cumulative reconstruction from the same checkpoints. Each row optimizes its own operating point. The order follows the model's dependency chain. The shared core in this table is the core of the cached training trajectory.}\label{tab:chain}
+\centering\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule Included evidence & Seed 3 & Seed 42 & Mean F1 (\%) & Step (pp)\\ \midrule
+\inputrows tables/chain.tex
+\bottomrule
+\end{tabular}
+\end{table}
+
+The cumulative reconstruction (Table~\ref{tab:chain}) gives a second way to read the same scores. The spatial increment slightly reduces mean F1 when appended directly after ranking, yet removing it from the complete detector reduces F1. The spectrum increment then adds 0.2679 points after the field is present. Sequential gains depend on which later scores are available, so summing single-deletion losses would give a misleading attribution.
+
+\section{View policy and training controls}\label{app:training}
+\begin{table}[ht]
+\caption{View policy on identical checkpoints. Only the pooling of the stage increments changes. Core pooling, history, PID, the threshold grid and the seed-specific selection procedure are held fixed. F1 is in percent.}\label{tab:views}
+\centering\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule Stage pooling policy & Seed 3 & Seed 42 & Mean \\ \midrule
+\inputrows tables/views.tex
+\bottomrule
+\end{tabular}
+\end{table}
+The native-only row applies the stage increments measured on the unreflected, original window. In the next two rows only the named increments are averaged, and all other increments keep their native values. Averaging all four increments over all four views gives 72.9167\%. Preserving the recorded orientation for spatial and spectrum features with equal trend weights raises the mean to 73.0046\%. Coherence weighting adds a further 0.0194 points. The absolute differences between the last four policies are small compared with the gain above the original single-view baseline.
+
+\begin{table}[ht]
+\caption{Separately trained controls on the original validation set, evaluated on raw input. Each row has its own training trajectories and selected checkpoints. The first row uses the cached-execution baseline. The five larger arms share parameter count and training schedule.}\label{tab:controls}
+\centering\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule Training condition & Trainable parameters & Seed 3 & Seed 42 & Mean F1 (\%)\\ \midrule
+\inputrows tables/training.tex
+\bottomrule
+\end{tabular}
+\end{table}
+The single-group control retains the extended neural architecture but supplies one anonymous background group. Online spectral grouping estimates 24 groups from the incoming spectral representation. The stationary arm fits 32 groups using descriptors of two halves of each training window. Soft matching then uses uncertain membership to weight previous negatives. A further neighboring-group control changes support for sparse groups. Across these equal-size runs, soft matching reaches 72.3240\%, compared with 70.9315\% under a single group. This comparison concerns the training treatment of backgrounds in those earlier variants. It does not isolate a training-time deletion of the final PID head. The controls also do not equate end-to-end inference FLOPs with the original baseline.
+
+\section{Uncertainty and grouping sensitivity}\label{app:robust}
+We used two kinds of groups because they address different sources of variation. For the \textbf{paired bootstrap}, we sampled 72 full validation recording folders with replacement 3,000 times. For each resample we used identical multiplicities across seeds and methods, recomputed each seed's F1 from summed TP/FP/FN, and averaged the two score differences. Table~\ref{tab:held} reports the 2.5th and 97.5th percentiles. The checkpoints and thresholds had already been selected on the complete validation split. These intervals describe variation across folders at those settings. Training variability and repeated method selection are outside their scope.
+
+For \textbf{group-held selection}, we instead grouped windows by the inferred subject name in their parent directory. For each of the 71 names and each arm, we selected an epoch and threshold using the remaining 70 names and applied them once to the held-out name. We summed counts across the 71 held-out groups before computing F1 for each seed. This gives each window the same weight when pooling counts. It assesses transfer of the operating point within the source validation corpus. No training weights were refit within these folds.
+
+\begin{table}[ht]
+\caption{Operating-point transfer and uncertainty of individual ablations. The first three columns are group-held F1 (\%). The last column is a separate analysis on the original full-validation operating points and reports the paired folder interval for deleting the named term, in points (full minus ablated).}\label{tab:held}
+\centering\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule Term removed & Held seed 3 & Held seed 42 & Held mean & Original gain, 95\% interval\\ \midrule
+\inputrows tables/held.tex
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\caption{Mean F1 (\%) by evaluation policy. Exclusion removes 2,582 windows, including 394 positives, from the three suspected shared names and retains the original operating points. The reduced evaluation has 163,497 windows and 3,077 positives.}\label{tab:sensitivity}
+\centering\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule Model & Original & Group-held selection & Suspected overlap excluded\\ \midrule
+\inputrows tables/sensitivity.tex
+\bottomrule
+\end{tabular}
+\end{table}
+
+Only the regional deletion has a conditional folder interval wholly above zero in Table~\ref{tab:held}. Pair deletion lowers both primary seed scores, while its interval is wide enough to include zero. Removing spectrum video improves the held mean by 0.1027 points despite lowering the primary mean. Table~\ref{tab:sensitivity} also shows that removing the suspected overlapping names decreases absolute F1 for every method. Both findings argue for reporting the method's advantage relative to controls alongside the uncertainty in its absolute score.
