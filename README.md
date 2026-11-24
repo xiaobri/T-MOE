@@ -13,12 +13,18 @@
 
 All four methods use the original split, paired seeds and training draw schedule. Model capacity and inference cost differ. The 166,079-window validation split also guided development. Selecting the epoch and threshold on other inferred subjects gives 72.6689% for T-MoE. The dataset has no verified patient IDs.
 
+## External evaluation and expert activity
+
+The four-hospital evaluation uses the source-selected models and thresholds on all 698,502 windows from Qilu, Tiantan, Chifeng and Xi’an. T-MoE reaches 45.32% equal-hospital mean F1, compared with 42.67% for the native baseline, 42.66% for the four-view baseline with head history and 45.63% for the refreshed-pair predecessor. The external results include per-seed confusion counts, precision, recall, F1, AP and AUROC. Expert activation is measured on the source validation set and all four external sites, with six routing weights and six expert positive scores captured for each of the four views. [Four-hospital results](results/external_hospitals.csv) · [Per-expert measurements](results/expert_activation.csv) · [Evaluation protocol and paired intervals](results/hospital_protocol.json)
+
 ## Appendix
 
 - **A.** Input and training protocol, raw-input verification, and equations for drift coherence, local PID features and head history.
 - **B.** Single-term deletions with reselected and locked operating points, per-seed TP/FP/FN, and cumulative reconstruction of the readout.
 - **C.** Eight view-pooling policies and separately trained controls with matched parameter counts.
 - **D.** Group-held selection, paired recording-folder bootstrap intervals, and sensitivity to suspected train/validation overlap.
+- **E.** Locked-threshold tests at four external hospitals, equally weighted and pooled summaries, and per-site paired intervals.
+- **F.** Core expert routing and positive scores by site and true label, the source top-weight shares, and the distinction between dense usage and score contribution. [External and activation appendix source](paper/hospital_appendix.tex)
 
 ## Rebuild
 
@@ -33,9 +39,11 @@ To check the aggregate confusion counts and regenerate the manuscript materials,
 
 ```sh
 python3 results/check.py
+python3 results/check_hospitals.py
 python3 paper/make_tables.py
 python3 paper/make_figure.py
 python3 paper/make_routing_figure.py
+python3 paper/make_hospital_figures.py
 ```
 
 The published results contain aggregate counts, operating points and uncertainty summaries. The official style, bibliography style and accompanying LaTeX dependencies are distributed with the manuscript. [ICML 2026 author instructions](https://icml.cc/Conferences/2026/AuthorInstructions) · [Official style archive](https://media.icml.cc/Conferences/ICML2026/Styles/icml2026.zip)

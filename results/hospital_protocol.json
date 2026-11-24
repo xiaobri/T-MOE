@@ -1,0 +1,489 @@
+{
+  "sites": {
+    "xiehe": {
+      "rows": 166079,
+      "positives": 3471,
+      "recording_folders": 72,
+      "folders_with_positives": 61,
+      "manifest_sha256": "a67f464878b04fa483ce58d15f6ec8d64dd06d06cbb58b65f34b634bfbc3bbde"
+    },
+    "qilu": {
+      "rows": 106983,
+      "positives": 4946,
+      "recording_folders": 75,
+      "folders_with_positives": 48,
+      "manifest_sha256": "1f8b1058a4724e512fccb1e65e85a86646fbb02fa586c4d5c478cddc857d5c17",
+      "native_baseline_replay": {
+        "3": {
+          "changed_decisions": 0,
+          "max_probability_difference": 0.004136174917221069,
+          "fresh_f1": 0.6147229445889177,
+          "fresh_counts": {
+            "tp": 3073,
+            "fp": 1979,
+            "fn": 1873,
+            "tn": 100058
+          },
+          "max_distance_to_threshold_of_changed_archived_probabilities": 0.0
+        },
+        "42": {
+          "changed_decisions": 1,
+          "max_probability_difference": 0.003813028335571289,
+          "fresh_f1": 0.6230022551230513,
+          "fresh_counts": {
+            "tp": 3177,
+            "fp": 2076,
+            "fn": 1769,
+            "tn": 99961
+          },
+          "max_distance_to_threshold_of_changed_archived_probabilities": 0.00016611099243157845
+        }
+      }
+    },
+    "tiantan": {
+      "rows": 325755,
+      "positives": 4283,
+      "recording_folders": 99,
+      "folders_with_positives": 44,
+      "manifest_sha256": "e6ee3eec71793f5c9600b6a0f23a115f31349373f6f0fdeaedaab9b16583035c",
+      "native_baseline_replay": {
+        "3": {
+          "changed_decisions": 0,
+          "max_probability_difference": 0.0037270188331604004,
+          "fresh_f1": 0.42113865431762465,
+          "fresh_counts": {
+            "tp": 3092,
+            "fp": 7309,
+            "fn": 1191,
+            "tn": 314163
+          },
+          "max_distance_to_threshold_of_changed_archived_probabilities": 0.0
+        },
+        "42": {
+          "changed_decisions": 1,
+          "max_probability_difference": 0.00465741753578186,
+          "fresh_f1": 0.4261816250663834,
+          "fresh_counts": {
+            "tp": 3210,
+            "fp": 7571,
+            "fn": 1073,
+            "tn": 313901
+          },
+          "max_distance_to_threshold_of_changed_archived_probabilities": 1.8596649176139124e-07
+        }
+      }
+    },
+    "chifeng": {
+      "rows": 46053,
+      "positives": 440,
+      "recording_folders": 32,
+      "folders_with_positives": 8,
+      "manifest_sha256": "ec583c917ecf7cd498632b627ee9111151b4251145ba95fd40e0bd6e6deecb46",
+      "native_baseline_replay": {
+        "3": {
+          "changed_decisions": 0,
+          "max_probability_difference": 0.0034154653549194336,
+          "fresh_f1": 0.41487839771101576,
+          "fresh_counts": {
+            "tp": 145,
+            "fp": 114,
+            "fn": 295,
+            "tn": 45499
+          },
+          "max_distance_to_threshold_of_changed_archived_probabilities": 0.0
+        },
+        "42": {
+          "changed_decisions": 0,
+          "max_probability_difference": 0.0043185800313949585,
+          "fresh_f1": 0.42953020134228187,
+          "fresh_counts": {
+            "tp": 160,
+            "fp": 145,
+            "fn": 280,
+            "tn": 45468
+          },
+          "max_distance_to_threshold_of_changed_archived_probabilities": 0.0
+        }
+      }
+    },
+    "xian": {
+      "rows": 219711,
+      "positives": 504,
+      "recording_folders": 20,
+      "folders_with_positives": 10,
+      "manifest_sha256": "be51edb0f33f4e9927e68aed5d8fabed1c3bed14476898078715379ecd411eb2",
+      "native_baseline_replay": {
+        "3": {
+          "changed_decisions": 0,
+          "max_probability_difference": 0.003033936023712158,
+          "fresh_f1": 0.23376623376623376,
+          "fresh_counts": {
+            "tp": 72,
+            "fp": 40,
+            "fn": 432,
+            "tn": 219167
+          },
+          "max_distance_to_threshold_of_changed_archived_probabilities": 0.0
+        },
+        "42": {
+          "changed_decisions": 0,
+          "max_probability_difference": 0.0038862228393554688,
+          "fresh_f1": 0.25,
+          "fresh_counts": {
+            "tp": 78,
+            "fp": 42,
+            "fn": 426,
+            "tn": 219165
+          },
+          "max_distance_to_threshold_of_changed_archived_probabilities": 0.0
+        }
+      }
+    }
+  },
+  "models": [
+    "t_moe",
+    "baseline",
+    "matched_baseline",
+    "fresh_both"
+  ],
+  "seeds": [
+    3,
+    42
+  ],
+  "expert_order": [
+    "frontal",
+    "left_temporal",
+    "right_temporal",
+    "centro_parietal",
+    "occipital",
+    "global"
+  ],
+  "source_selection": {
+    "3": {
+      "t_moe": {
+        "epoch": 3,
+        "threshold": 0.91
+      },
+      "matched_baseline": {
+        "epoch": 13,
+        "threshold": 0.81
+      },
+      "baseline": {
+        "epoch": 2,
+        "sha256": "99c2b50e87dc9852e1ad713b02a50f2f5b5561eaa26634e755314021d60798c4",
+        "threshold": 0.81
+      },
+      "fresh_both": {
+        "epoch": 5,
+        "sha256": "dce76df8d54017c022e7721cf6205ed5b34eae61a2ac9ac4913ad11e843b39d2",
+        "threshold": 0.9500000000000001
+      }
+    },
+    "42": {
+      "t_moe": {
+        "epoch": 9,
+        "threshold": 0.87
+      },
+      "matched_baseline": {
+        "epoch": 8,
+        "threshold": 0.8300000000000001
+      },
+      "baseline": {
+        "epoch": 5,
+        "sha256": "5cb460497bf3b50794b158f1aa4e59614f7e36369a5225fb3e4793b4e065f5cb",
+        "threshold": 0.8200000000000001
+      },
+      "fresh_both": {
+        "epoch": 4,
+        "sha256": "ab3cbc633fdf1300e1bff38779e0cb09b6dc8f731328ddb9785781e8768931f0",
+        "threshold": 0.9500000000000001
+      }
+    }
+  },
+  "evaluation_code_sha256": "db94c19f8f28238744697ece6a5059d1506f4cd6f6383f457d0742403f94ad2a",
+  "activation_source": "Current core routing weights and positive-class expert probabilities for native, mirrored, detrended and mirrored-detrended views",
+  "verification": "First and last batch of every site/shard compared with full direct detector passes; all source operating decisions checked against published results; external native baseline rerun compared row by row with archived raw replay. Published native comparator uses archived scores; fresh counts and threshold disagreement stored per site and seed.",
+  "thresholds_fixed_on_source": true,
+  "hospital_threshold_tuning": false,
+  "checkpoint_sha256": {
+    "3": "93adbe2eaae4fc4a95070149cc18c19eb1b4c2ef1126c1d2c158e41d9a2fac7b",
+    "42": "f67144cd65ea76ebe34b51355e4f1679d08875975213a0b354285c4d7668fcd4"
+  },
+  "readouts_per_window": 4,
+  "bootstrap": {
+    "replicates": 5000,
+    "rng_seed": 4303,
+    "unit": "full recording folder; treated as a cluster, not a verified patient",
+    "stratification": "within each site; shared resamples for both seeds and all methods"
+  },
+  "results": {
+    "qilu": {
+      "two_seed_f1": {
+        "t_moe": 0.6485032084914617,
+        "baseline": 0.6189300997454392,
+        "matched_baseline": 0.6278161334476482,
+        "fresh_both": 0.6377349406253933
+      },
+      "paired_gain_pp": {
+        "baseline": {
+          "point": 2.957310874602248,
+          "interval_95": [
+            1.4648548186635455,
+            4.454840220014859
+          ]
+        },
+        "matched_baseline": {
+          "point": 2.0687075043813508,
+          "interval_95": [
+            0.94334347865413,
+            3.1858821143547438
+          ]
+        },
+        "fresh_both": {
+          "point": 1.0768267866068437,
+          "interval_95": [
+            0.38021510221867755,
+            1.815695274412337
+          ]
+        }
+      }
+    },
+    "tiantan": {
+      "two_seed_f1": {
+        "t_moe": 0.40651695010751776,
+        "baseline": 0.42367428633029214,
+        "matched_baseline": 0.42396997159699334,
+        "fresh_both": 0.4156812746225743
+      },
+      "paired_gain_pp": {
+        "baseline": {
+          "point": -1.7157336222774378,
+          "interval_95": [
+            -3.669321111833812,
+            -0.03036924653448607
+          ]
+        },
+        "matched_baseline": {
+          "point": -1.7453021489475584,
+          "interval_95": [
+            -3.898455419875317,
+            0.21543162082659575
+          ]
+        },
+        "fresh_both": {
+          "point": -0.9164324515056554,
+          "interval_95": [
+            -2.219714444965416,
+            0.7708260713635408
+          ]
+        }
+      }
+    },
+    "chifeng": {
+      "two_seed_f1": {
+        "t_moe": 0.44054775737018725,
+        "baseline": 0.42220429952664884,
+        "matched_baseline": 0.38872660497699707,
+        "fresh_both": 0.45730769936343124
+      },
+      "paired_gain_pp": {
+        "baseline": {
+          "point": 1.8343457843538413,
+          "interval_95": [
+            -3.820039124171642,
+            5.566195260655601
+          ]
+        },
+        "matched_baseline": {
+          "point": 5.182115239319018,
+          "interval_95": [
+            -0.8020516349814618,
+            12.93468914239547
+          ]
+        },
+        "fresh_both": {
+          "point": -1.6759941993243987,
+          "interval_95": [
+            -3.2932654284479406,
+            -0.04020173172459181
+          ]
+        }
+      }
+    },
+    "xian": {
+      "two_seed_f1": {
+        "t_moe": 0.3173421974568692,
+        "baseline": 0.24188311688311687,
+        "matched_baseline": 0.2657004367231367,
+        "fresh_both": 0.3143806514870901
+      },
+      "paired_gain_pp": {
+        "baseline": {
+          "point": 7.545908057375233,
+          "interval_95": [
+            1.4557268772786764,
+            16.208195977962824
+          ]
+        },
+        "matched_baseline": {
+          "point": 5.16417607337325,
+          "interval_95": [
+            0.7411490407773744,
+            12.28954062728885
+          ]
+        },
+        "fresh_both": {
+          "point": 0.29615459697791,
+          "interval_95": [
+            -1.7624122914518674,
+            3.788961781523677
+          ]
+        }
+      }
+    },
+    "equal_site_mean": {
+      "two_seed_f1": {
+        "t_moe": 0.45322752835650904,
+        "baseline": 0.4266729506213742,
+        "matched_baseline": 0.42655328668619386,
+        "fresh_both": 0.45627614152462226
+      },
+      "paired_gain_pp": {
+        "baseline": {
+          "point": 2.655457773513481,
+          "interval_95": [
+            0.5660782692670582,
+            5.166801594139181
+          ]
+        },
+        "matched_baseline": {
+          "point": 2.667424167031518,
+          "interval_95": [
+            0.6209986697734564,
+            5.2115739380341575
+          ]
+        },
+        "fresh_both": {
+          "point": -0.30486131681132234,
+          "interval_95": [
+            -1.0753532613896295,
+            0.8139067229453675
+          ]
+        }
+      }
+    },
+    "pooled_windows": {
+      "two_seed_f1": {
+        "t_moe": 0.49538926394787947,
+        "baseline": 0.4942883021844619,
+        "matched_baseline": 0.49844992875665434,
+        "fresh_both": 0.49716435130782904
+      },
+      "paired_gain_pp": {
+        "baseline": {
+          "point": 0.11009617634175628,
+          "interval_95": [
+            -1.2820766162044885,
+            1.523077933622444
+          ]
+        },
+        "matched_baseline": {
+          "point": -0.3060664808774871,
+          "interval_95": [
+            -1.848572760146124,
+            1.1864814159549746
+          ]
+        },
+        "fresh_both": {
+          "point": -0.17750873599495787,
+          "interval_95": [
+            -1.132423722248508,
+            0.8720242334120442
+          ]
+        }
+      }
+    }
+  },
+  "baseline_direct_checks": {
+    "chifeng": {
+      "3": {
+        "archived_native_direct_decision_differences": 0,
+        "batches": 2,
+        "direct_matched_decision_differences": 0,
+        "fresh_native_direct_decision_differences": 0,
+        "max_fresh_native_probability_difference": 0.00011408329010009766,
+        "max_matched_probability_difference": 6.538629531860352e-05,
+        "rows": 229
+      },
+      "42": {
+        "archived_native_direct_decision_differences": 0,
+        "batches": 2,
+        "direct_matched_decision_differences": 0,
+        "fresh_native_direct_decision_differences": 0,
+        "max_fresh_native_probability_difference": 0.00011643767356872559,
+        "max_matched_probability_difference": 7.957220077514648e-05,
+        "rows": 229
+      }
+    },
+    "qilu": {
+      "3": {
+        "archived_native_direct_decision_differences": 0,
+        "batches": 3,
+        "direct_matched_decision_differences": 0,
+        "fresh_native_direct_decision_differences": 0,
+        "max_fresh_native_probability_difference": 0.00011345744132995605,
+        "max_matched_probability_difference": 8.243322372436523e-05,
+        "rows": 359
+      },
+      "42": {
+        "archived_native_direct_decision_differences": 1,
+        "batches": 3,
+        "direct_matched_decision_differences": 0,
+        "fresh_native_direct_decision_differences": 0,
+        "max_fresh_native_probability_difference": 0.00010898709297180176,
+        "max_matched_probability_difference": 7.665157318115234e-05,
+        "rows": 359
+      }
+    },
+    "tiantan": {
+      "3": {
+        "archived_native_direct_decision_differences": 0,
+        "batches": 3,
+        "direct_matched_decision_differences": 0,
+        "fresh_native_direct_decision_differences": 0,
+        "max_fresh_native_probability_difference": 0.00011470913887023926,
+        "max_matched_probability_difference": 5.21242618560791e-05,
+        "rows": 379
+      },
+      "42": {
+        "archived_native_direct_decision_differences": 0,
+        "batches": 3,
+        "direct_matched_decision_differences": 0,
+        "fresh_native_direct_decision_differences": 1,
+        "max_fresh_native_probability_difference": 8.174777030944824e-05,
+        "max_matched_probability_difference": 5.0634145736694336e-05,
+        "rows": 379
+      }
+    },
+    "xian": {
+      "3": {
+        "archived_native_direct_decision_differences": 0,
+        "batches": 2,
+        "direct_matched_decision_differences": 0,
+        "fresh_native_direct_decision_differences": 0,
+        "max_fresh_native_probability_difference": 4.3258070945739746e-05,
+        "max_matched_probability_difference": 3.096461296081543e-05,
+        "rows": 191
+      },
+      "42": {
+        "archived_native_direct_decision_differences": 0,
+        "batches": 2,
+        "direct_matched_decision_differences": 0,
+        "fresh_native_direct_decision_differences": 0,
+        "max_fresh_native_probability_difference": 4.4345855712890625e-05,
+        "max_matched_probability_difference": 4.488229751586914e-05,
+        "rows": 191
+      }
+    }
+  }
+}

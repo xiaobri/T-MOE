@@ -117,7 +117,7 @@ Cross-batch memory supplies comparisons beyond a single mini-batch \citep{wang20
 \section{Discussion}
 The clearest evidence is for retaining regional information over time and comparing similar-background windows. Explicit bilateral interaction contributes a smaller, repeatable change in direction across two seeds. Its magnitude is sensitive to the operating point, and recording-level uncertainty includes zero. Retaining electrode orientation or suppressing drift may suit this corpus differently from another montage or acquisition protocol.
 
-Method development repeatedly used the same validation split. The experiment archive contains 559 completed two-seed run directories spanning 558 method names, including earlier development work. Such repeated selection can favor promising fluctuations \citep{cawley2010}. Applying the chosen fusion rule to corresponding checkpoints of an earlier training repeat gives 72.9715\%. Together with the group-transfer and overlap analyses, this limits the precision of the 73.0240\% estimate. An independently collected, patient-identified cohort with a prospectively locked operating point would test transfer beyond this study.
+Method development repeatedly used the same validation split. The experiment archive contains 559 completed two-seed run directories spanning 558 method names, including earlier development work. Such repeated selection can favor promising fluctuations \citep{cawley2010}. Applying the chosen fusion rule to corresponding checkpoints of an earlier training repeat gives 72.9715\%. Together with the group-transfer and overlap analyses, this limits the precision of the 73.0240\% estimate. Appendix~\ref{app:external} tests the source-locked classifiers in four external hospitals, and Appendix~\ref{app:activation} measures how their six core expert responses vary across sites. Verified patient identities and clinically adjudicated endpoints would allow a patient-level assessment.
 
 \section*{Impact Statement}
 A more sensitive EEG window classifier could help prioritize segments for expert review, but false positives also increase review burden. Here the unit is a four-second window, and the labels, patient identities and operating points have not been validated for clinical deployment. The aggregate results permit scrutiny of error counts and model selection without distributing individual recordings.
@@ -128,4 +128,5 @@ A more sensitive EEG window classifier could help prioritize segments for expert
 \appendix
 \onecolumn
 \input{appendix}
+\input{hospital_appendix}
 \end{document}
